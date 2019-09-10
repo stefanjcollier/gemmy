@@ -63,8 +63,8 @@ function find_repo_line {
   echo "$line"
 }
 
-function needed_by_parent() {
-  (find_repo_line $@ 1> /dev/null) && return 0 || return 1
+function required_in_gemfile() {
+  if [[  -z $(find_repo_line $@) ]]; then return 1; else return 0; fi
 }
 
 # Find the branch desired in the gemfile
@@ -80,7 +80,7 @@ function gemfile_branch() {
 
 function use_local_repo() {
   local repo_name=$1
-  bundle config | grep "local.$repo_name"
+  if [[ -n $(bundle config | grep "local.$repo_name") ]]; then return 1; else return 0; fi
 }
 
 PREFIX=".gemmy"
@@ -116,24 +116,17 @@ function writeline() {
 }
 
 function csv_header() {
-  writeline "Requirement" "Parent" "in Gemfile?" "Desired branch" "using local?" "local_branch" "will work?"
+  writeline "Requirement" "Parent" "in Gemfile?" "Desired branch" "Use local source?" "Local branch" "Branches match?"
 }
 
 function will_work() {
-  local use_local_source=$1
-  local in_gemfile=$2
-  local active_branch=$3
-  local desired_branch=$4
-  if [[ $use_local_source == '❌' ]] || [[ $in_gemfile == '❌' ]]; then
-    echo '✅'
-    debug "[will_work($1, $2, $3, $4)] Early exit"
-    return
-  fi
+  local active_branch=$1
+  local desired_branch=$2
   if [[ $active_branch == $desired_branch ]]; then
     echo '✅'
-    debug "[will_work($1, $2, $3, $4)] Success"
+    debug "[will_work($1, $2)] Success"
   else
-    debug "[will_work($1, $2, $3, $4)] Failure"
+    debug "[will_work($1, $2)] Failure"
     echo '❌'
   fi
 }
@@ -142,17 +135,25 @@ function dump_requirement() {
   local repo=$1
   local parent=$2
   local active_branch=$(local_branch "$repo")
-  local use_local_source=$(if [[ -n $(use_local_repo "$repo") ]]; then echo '✅'; else echo '❌'; fi)
 
-  local desired_branch=$(
-    if needed_by_parent "$repo" "$parent"; then
-      gemfile_branch "$repo" "$parent"
-    else
-      echo '❌'
-    fi
-  )
-  will_work=$(will_work "$use_local_source" "$desired_branch" "$active_branch" "$desired_branch")
-  writeline "$repo" "$parent" '✅' "$desired_branch" "$use_local_source" "$active_branch" "$will_work"
+  if ! required_in_gemfile "$repo" "$parent"; then
+    debug "[dump_requirement($1, $2)] Not needed :("
+    writeline "$repo" "$parent" '❌' '💤' '💤' '💤' '✅'
+    return
+  fi
+  debug "[dump_requirement($1, $2)] Needed!"
+
+  local desired_branch=$(gemfile_branch "$repo" "$parent")
+
+  if use_local_repo "$repo"; then
+    debug "[dump_requirement($1, $2)] Not using local :("
+    writeline "$repo" "$parent" '✅' "$desired_branch" '❌' '💤'  '✅'
+    return
+  fi
+  debug "[dump_requirement($1, $2)] Using local code!"
+
+  will_work=$(will_work "$active_branch" "$desired_branch")
+  writeline "$repo" "$parent" '✅' "$desired_branch" '✅' "$active_branch" "$will_work"
   debug "[dump_requirement($1, $2)] Done determining $repo usage for $parent"
 }
 
@@ -172,7 +173,8 @@ function current_repo_name() {
 }
 
 curr_repo_name=$(current_repo_name)
-dump_requirement ff_api dressipi_partner_api
 dump_requirement dressipi_partner_api "$curr_repo_name"
+dump_requirement ff_api "$curr_repo_name"
+dump_requirement ff_api dressipi_partner_api
 
 column -t -s, "$FILE"
