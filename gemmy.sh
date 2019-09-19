@@ -73,7 +73,7 @@ function gemfile_branch() {
   local parent_repo_name=$2
 
   function extract_branch { grep -o "branch.*" |  cut -d ' ' -f 2; }
-  function remove_formatting { sed 's/[:" ]//g'; }
+  function remove_formatting { sed 's/[:" ]//g' | sed "s/'//g"; }
   line=$(find_repo_line "$repo_name" "$parent_repo_name")
   echo "$line" | extract_branch | remove_formatting
 }
@@ -175,6 +175,7 @@ function current_repo_name() {
 curr_repo_name=$(current_repo_name)
 dump_requirement dressipi_partner_api "$curr_repo_name"
 dump_requirement ff_api "$curr_repo_name"
+dump_requirement rspec-ff_api "$curr_repo_name"
 dump_requirement ff_api dressipi_partner_api
 
 column -t -s, "$FILE"
