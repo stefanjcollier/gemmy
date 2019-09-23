@@ -1,6 +1,6 @@
 # Description:
 #   Determine if the current local dependency chain is compatible
-#   Checks: <current repo> -> dressipi_partner_api -> ff_api 
+#   Checks: <current repo> -> dressipi_partner_api -> ff_api
 # Usage:
 #   # go to the relevant repo e.g. pantheon2
 #   ./gemmy.sh
@@ -53,7 +53,7 @@ function local_branch() {
   echo "$branch_name"
 }
 
-function find_repo_line { 
+function find_repo_line {
   local repo_name=$1
   local parent_repo_name=$2
   cd_repo "$parent_repo_name"
@@ -89,7 +89,7 @@ SETUP=
 function setup_file() {
   if [ ! $SETUP ]; then
     function find_other_gemmies() { find . -name "$PREFIX*" ! -name $FILE;  }
-    find_other_gemmies | xargs rm 
+    find_other_gemmies | xargs rm
     touch "$FILE"
     SETUP='done'
     csv_header
@@ -99,10 +99,13 @@ function setup_file() {
 
 BAD_WRITE_EXIT_CODE=51
 function writeline() {
+  if [[ -n $NO_WRITES ]]; then
+    return
+  fi
   if [ $# -ne 7 ]; then
     errecho "Writeline missing an arg, $# out of 7 given"
     errecho "  args: $@"
-    exit $BAD_WRITE_EXIT_CODE 
+    exit $BAD_WRITE_EXIT_CODE
   fi
   local repo_name=$1
   local parent_name=$2
@@ -111,7 +114,6 @@ function writeline() {
   local using_local=$5
   local local_branch=$6
   local setup_correct=$7
-  setup_file
   echo "$repo_name,$parent_name,$in_gemfile,$desired_branch,$using_local,$local_branch,$setup_correct" >> "$FILE"
 }
 
@@ -119,6 +121,7 @@ function csv_header() {
   writeline "Requirement" "Parent" "in Gemfile?" "Desired branch" "Use local source?" "Local branch" "Branches match?"
 }
 
+SOMETHING_WRONG_WITH_ANY_REPO=
 function will_work() {
   local active_branch=$1
   local desired_branch=$2
@@ -128,6 +131,7 @@ function will_work() {
   else
     debug "[will_work($1, $2)] Failure"
     echo '❌'
+    SOMETHING_WRONG_WITH_ANY_REPO=1
   fi
 }
 
@@ -172,10 +176,39 @@ function current_repo_name() {
   fi
 }
 
-curr_repo_name=$(current_repo_name)
-dump_requirement dressipi_partner_api "$curr_repo_name"
-dump_requirement ff_api "$curr_repo_name"
-dump_requirement rspec-ff_api "$curr_repo_name"
-dump_requirement ff_api dressipi_partner_api
+# Throw the following command into a thread
+function async () {
+  $@ &
+}
 
-column -t -s, "$FILE"
+# ----------------[ Main ]--------------------------------
+SILENT=
+NO_WRITES=
+for arg in $@; do
+  case $arg in
+    --silent|-s)
+    SILENT=1
+    ;;
+    --no-write|--no-writes|-n)
+    NO_WRITES=1
+    ;;
+
+  esac
+done
+
+setup_file
+
+curr_repo_name=$(current_repo_name)
+async dump_requirement dressipi_partner_api "$curr_repo_name"
+async dump_requirement ff_api "$curr_repo_name"
+async dump_requirement rspec-ff_api "$curr_repo_name"
+if [[ "$curr_repo_name" == 'arcadia-dressipi' ]]; then 
+ async dump_requirement arcadia-emails "$curr_repo_name"
+fi
+async dump_requirement ff_api dressipi_partner_api
+
+wait
+
+if [[ -z $SILENT ]]; then
+  column -t -s, "$FILE"
+fi
