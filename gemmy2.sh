@@ -18,7 +18,6 @@
 TRUE=0
 FALSE=1
 
-NO_WRITES=
 GEMFILE=./Gemfile
 MAX_DEPTH=1
 
@@ -32,10 +31,6 @@ function parse_args () {
 
       --depth=*)
         MAX_DEPTH=`get_value`
-        ;;
-
-      --no-write|--no-writes|-n)
-        NO_WRITES=1
         ;;
 
       *)
