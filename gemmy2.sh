@@ -18,6 +18,7 @@
 TRUE=0
 FALSE=1
 
+FIX=
 GEMFILE=./Gemfile
 MAX_DEPTH=1
 
@@ -25,6 +26,9 @@ function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
 function parse_args () {
   for arg in $@; do
     case $arg in
+      fix)
+        FIX=1
+        ;;
       --gemfile=*)
         GEMFILE=`get_value`
         ;;
@@ -42,7 +46,12 @@ function parse_args () {
 }
 
 RED='\033[0;31m'
-BLUE='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+GREY='\033[0;37m'
 NC='\033[0m'
 function errecho() { echo -e "⚠️  ${RED}gemmy: $@${NC}" >&2; }
 function debug() { if [[ -n $DEBUG ]] ; then echo -e "ℹ️  ${BLUE}$@${NC}" >&2 ; fi; }
@@ -100,7 +109,7 @@ function repo_lines_in_gemfile () {
     fi
 
     if [[ -n "$local_path" ]] && [[ $branch != "$local_branch" ]]; then
-      printer $depth "${RED}$name${NC} ❌  (Needs '$branch' branch, current: '$local_branch')"
+      printer $depth "${RED}$name${NC} ❌  (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
     else
       printer $depth "$name"
     fi
@@ -122,8 +131,8 @@ function get_bundle_locals_and_repos() {
 }
 
 function discover_bundle_local_overrides () {
-  BUNDLE_LOCAL_REPOS=()
-  BUNDLE_LOCAL_PATHS=()
+  BUNDLE_LOCAL_REPOS=()  # global
+  BUNDLE_LOCAL_PATHS=()  # global
   local repo path
 
   for line in `get_bundle_locals_and_repos`; do
@@ -136,18 +145,18 @@ function discover_bundle_local_overrides () {
       repo=''
     fi
   done
+  debug "=============================="
+  debug ${BUNDLE_LOCAL_REPOS[*]}
+  debug ${BUNDLE_LOCAL_PATHS[*]}
+  debug "=============================="
 }
 
 # ------------------[ Main ]------------------
 discover_bundle_local_overrides
-debug "=============================="
-debug ${BUNDLE_LOCAL_REPOS[*]}
-debug ${BUNDLE_LOCAL_PATHS[*]}
-debug "=============================="
 
 parse_args $@
 debug "Using Gemfile: $GEMFILE"
 
-current_repo=$(pwd | sed 's:.*/::g')
-echo $current_repo
+parent_repo=$(pwd | sed 's:.*/::g')
+echo $parent_repo
 repo_lines_in_gemfile "$GEMFILE" 1
