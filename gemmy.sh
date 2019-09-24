@@ -80,12 +80,12 @@ function gemfile_branch() {
 
 function use_local_repo() {
   local repo_name=$1
-  if [[ -n $(bundle config | grep "local.$repo_name") ]]; then return 1; else return 0; fi
+  if [[ -n $(bundle config | grep "local.$repo_name") ]]; then return ; else return 1; fi
 }
 
 PREFIX=".gemmy"
 FILE="${PREFIX}_$(datetimestamp).csv"
-SETUP=
+SETUP=   # If the $FILE has already been setup
 function setup_file() {
   if [ ! $SETUP ]; then
     function find_other_gemmies() { find . -name "$PREFIX*" ! -name $FILE;  }

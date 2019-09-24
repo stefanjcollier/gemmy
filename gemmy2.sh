@@ -128,7 +128,7 @@ function get_bundle_locals_and_repos() {
    sed 's/local\.//' | skip_lines_like '^--' | get_last_field;
 }
 
-function set_bundle_local_overrides () {
+function discover_bundle_local_overrides () {
   local repo path
   for line in `get_bundle_locals_and_repos`; do
     if [[ -z $repo ]]; then
@@ -145,7 +145,7 @@ function set_bundle_local_overrides () {
 # ------------------[ Main ]------------------
 BUNDLE_LOCAL_REPOS=()
 BUNDLE_LOCAL_PATHS=()
-set_bundle_local_overrides
+discover_bundle_local_overrides
 debug "=============================="
 debug ${BUNDLE_LOCAL_REPOS[*]}
 debug ${BUNDLE_LOCAL_PATHS[*]}
