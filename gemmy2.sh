@@ -104,12 +104,10 @@ function repo_lines_in_gemfile () {
       local_branch=$(cd "$local_path" && git rev-parse --abbrev-ref HEAD)
     fi
 
-    if [[ -z "$local_path" ]]; then
-      printer $depth "$name"
-    elif [[ $branch == "$local_branch" ]]; then
-      printer $depth "$name"
-    else
+    if [[ -n "$local_path" ]] && [[ $branch != "$local_branch" ]]; then
       printer $depth "${RED}$name${NC} ❌  (Needs '$branch' branch, current: '$local_branch')"
+    else
+      printer $depth "$name"
     fi
 
     if [[ -n $local_path ]]; then
