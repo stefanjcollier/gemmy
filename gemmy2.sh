@@ -18,7 +18,6 @@
 TRUE=0
 FALSE=1
 
-FIX=
 GEMFILE=./Gemfile
 MAX_DEPTH=1
 
@@ -26,9 +25,6 @@ function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
 function parse_args () {
   for arg in $@; do
     case $arg in
-      fix)
-        FIX=1
-        ;;
       --gemfile=*)
         GEMFILE=`get_value`
         ;;
