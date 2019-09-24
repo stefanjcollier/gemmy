@@ -127,7 +127,10 @@ function get_bundle_locals_and_repos() {
 }
 
 function discover_bundle_local_overrides () {
+  BUNDLE_LOCAL_REPOS=()
+  BUNDLE_LOCAL_PATHS=()
   local repo path
+
   for line in `get_bundle_locals_and_repos`; do
     if [[ -z $repo ]]; then
       repo=$line
@@ -141,8 +144,6 @@ function discover_bundle_local_overrides () {
 }
 
 # ------------------[ Main ]------------------
-BUNDLE_LOCAL_REPOS=()
-BUNDLE_LOCAL_PATHS=()
 discover_bundle_local_overrides
 debug "=============================="
 debug ${BUNDLE_LOCAL_REPOS[*]}
