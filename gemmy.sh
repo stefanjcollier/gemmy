@@ -1,214 +1,164 @@
 # Description:
 #   Determine if the current local dependency chain is compatible
 #   Checks: <current repo> -> dressipi_partner_api -> ff_api
+#
 # Usage:
 #   # go to the relevant repo e.g. pantheon2
 #   ./gemmy.sh
+#
 # Requires
-#     # GNU date (aliased to gdate)
-#     # GNU find (aliased to gfind)
+#     - bash 4
+#     - GNU cut  (alias: gcut)
+#     - GNU grep (alias: ggrep)
+#
 # Setup
-#   $ brew install coreutils # gdate
-#   $ brew install findutils # gfind
+#   $ brew install coreutils # gcut
+#   $ brew install ggrep # ggrep
 #   # then get scripting!
-# Exit Codes
-#   0  - success
-#   4x are all user errors
-#    41 - Not in a repo
-#   5x are all internal errors
-#    51 - incorrect number of args written to gemmy debug file
-#    52 - cannot find the repo dir
-set -e
+#
+TRUE=0
+FALSE=1
 
-# cd to previously cd'ed dir without the output
-function silent_cd_back() { cd -  1> /dev/null; }
+GEMFILE=./Gemfile
+MAX_DEPTH=1
 
-function cd_repo() {
-  repo_dir="${HOME}/Source/$1"
-  if [ -e "$repo_dir" ]; then
-    cd "$repo_dir"
-  else
-    errecho "Cannot find repo dir for ~/Source/$1"
-    exit 52
+function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
+function parse_args () {
+  local action=$1
+  if [[ $action =~ ^[a-z] ]]; then
+    shift
   fi
+
+  for arg in $@; do
+    case $arg in
+      --gemfile=*)
+        GEMFILE=`get_value`
+        ;;
+
+      --depth=*)
+        MAX_DEPTH=`get_value`
+        ;;
+
+      *)
+        echo "Unrecognised argument: $arg"
+        exit 2
+        ;;
+    esac
+  done
 }
 
-function datetimestamp() { gdate --utc --iso-8601=seconds;  }
-
 RED='\033[0;31m'
-BLUE='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+GREY='\033[0;37m'
 NC='\033[0m'
 function errecho() { echo -e "⚠️  ${RED}gemmy: $@${NC}" >&2; }
 function debug() { if [[ -n $DEBUG ]] ; then echo -e "ℹ️  ${BLUE}$@${NC}" >&2 ; fi; }
+function lstrip() { sed 's/^[ ][ ]*//'; }
+function rstrip() { sed 's/[ ][ ]*$//'; }
+function strip() { lstrip | rstrip; }
 
-# Get the branch of the given repo
-function local_branch() {
-  local repo_name=$1
-  cd_repo "$repo_name"
-  # TODO handle repo is not cloned locally
-  local branch_name=$(git rev-parse --abbrev-ref HEAD)
-  debug "[local_branch($1)] branch_name = $branch_name"
-
-  silent_cd_back
-  echo "$branch_name"
-}
-
-function find_repo_line {
-  local repo_name=$1
-  local parent_repo_name=$2
-  cd_repo "$parent_repo_name"
-  line=$(grep "gem '${repo_name}'" Gemfile)
-  debug "[find_repo_line($1, $2)] line = $line"
-  silent_cd_back
-  echo "$line"
-}
-
-function required_in_gemfile() {
-  if [[  -z $(find_repo_line $@) ]]; then return 1; else return 0; fi
-}
-
-# Find the branch desired in the gemfile
-function gemfile_branch() {
-  local repo_name=$1
-  local parent_repo_name=$2
-
-  function extract_branch { grep -o "branch.*" |  cut -d ' ' -f 2; }
-  function remove_formatting { sed 's/[:" ]//g' | sed "s/'//g"; }
-  line=$(find_repo_line "$repo_name" "$parent_repo_name")
-  echo "$line" | extract_branch | remove_formatting
-}
-
-function use_local_repo() {
-  local repo_name=$1
-  if [[ -n $(bundle config | grep "local.$repo_name") ]]; then return ; else return 1; fi
-}
-
-PREFIX=".gemmy"
-FILE="${PREFIX}_$(datetimestamp).csv"
-SETUP=   # If the $FILE has already been setup
-function setup_file() {
-  if [ ! $SETUP ]; then
-    function find_other_gemmies() { find . -name "$PREFIX*" ! -name $FILE;  }
-    find_other_gemmies | xargs rm
-    touch "$FILE"
-    SETUP='done'
-    csv_header
-    debug "[setup_file] Setup done! (var = $SETUP) (file = $FILE)"
-  fi
-}
-
-BAD_WRITE_EXIT_CODE=51
-function writeline() {
-  if [[ -n $NO_WRITES ]]; then
-    return
-  fi
-  if [ $# -ne 7 ]; then
-    errecho "Writeline missing an arg, $# out of 7 given"
-    errecho "  args: $@"
-    exit $BAD_WRITE_EXIT_CODE
-  fi
-  local repo_name=$1
-  local parent_name=$2
-  local in_gemfile=$3
-  local desired_branch=$4
-  local using_local=$5
-  local local_branch=$6
-  local setup_correct=$7
-  echo "$repo_name,$parent_name,$in_gemfile,$desired_branch,$using_local,$local_branch,$setup_correct" >> "$FILE"
-}
-
-function csv_header() {
-  writeline "Requirement" "Parent" "in Gemfile?" "Desired branch" "Use local source?" "Local branch" "Branches match?"
-}
-
-SOMETHING_WRONG_WITH_ANY_REPO=
-function will_work() {
-  local active_branch=$1
-  local desired_branch=$2
-  if [[ $active_branch == $desired_branch ]]; then
-    echo '✅'
-    debug "[will_work($1, $2)] Success"
-  else
-    debug "[will_work($1, $2)] Failure"
-    echo '❌'
-    SOMETHING_WRONG_WITH_ANY_REPO=1
-  fi
-}
-
-function dump_requirement() {
-  local repo=$1
-  local parent=$2
-  local active_branch=$(local_branch "$repo")
-
-  if ! required_in_gemfile "$repo" "$parent"; then
-    debug "[dump_requirement($1, $2)] Not needed :("
-    writeline "$repo" "$parent" '❌' '💤' '💤' '💤' '✅'
-    return
-  fi
-  debug "[dump_requirement($1, $2)] Needed!"
-
-  local desired_branch=$(gemfile_branch "$repo" "$parent")
-
-  if use_local_repo "$repo"; then
-    debug "[dump_requirement($1, $2)] Not using local :("
-    writeline "$repo" "$parent" '✅' "$desired_branch" '❌' '💤'  '✅'
-    return
-  fi
-  debug "[dump_requirement($1, $2)] Using local code!"
-
-  will_work=$(will_work "$active_branch" "$desired_branch")
-  writeline "$repo" "$parent" '✅' "$desired_branch" '✅' "$active_branch" "$will_work"
-  debug "[dump_requirement($1, $2)] Done determining $repo usage for $parent"
-}
-
-PWD_IS_NOT_REPO_EXIT_CODE=41
-function is_git_repo() {
-  [ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1
-}
-
-function current_repo_name() {
-  if is_git_repo ; then
-    basename $(pwd)
-
-  else
-    errecho 'The current directory is not a git repo'
-    exit $PWD_IS_NOT_REPO_EXIT_CODE
-  fi
-}
-
-# Throw the following command into a thread
-function async () {
-  $@ &
-}
-
-# ----------------[ Main ]--------------------------------
-SILENT=
-NO_WRITES=
-for arg in $@; do
-  case $arg in
-    --silent|-s)
-    SILENT=1
-    ;;
-    --no-write|--no-writes|-n)
-    NO_WRITES=1
-    ;;
-
+function print_branch()   { echo -e "   ├── $@"; }
+function pprint_branch()  { echo -e "   │   ├── $@"; }
+function ppprint_branch() { echo -e "   │   │    ├── $@"; }
+function printer() {
+  local depth=$1
+  shift
+  case $depth in
+    0) print_branch $@;;
+    1) print_branch $@;;
+    2) pprint_branch $@;;
+    *) ppprint_branch $@;;
   esac
-done
+}
 
-setup_file
+function find_local_repo_path() {
+  local test_repo=$1
+  local index=0
 
-curr_repo_name=$(current_repo_name)
-async dump_requirement dressipi_partner_api "$curr_repo_name"
-async dump_requirement ff_api "$curr_repo_name"
-async dump_requirement rspec-ff_api "$curr_repo_name"
-if [[ "$curr_repo_name" == 'arcadia-dressipi' ]]; then 
- async dump_requirement arcadia-emails "$curr_repo_name"
-fi
-async dump_requirement ff_api dressipi_partner_api
+  for repo in "${BUNDLE_LOCAL_REPOS[@]}"; do
+    if [[ $test_repo == $repo ]]; then
+      path="${BUNDLE_LOCAL_PATHS[$index]}"
+      echo $path
+      return
+    fi
+    (( index++ ))
+  done
+  echo ''
+}
 
-wait
 
-if [[ -z $SILENT ]]; then
-  column -t -s, "$FILE"
-fi
+function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
+function clean(){ sed 's/[:",]//g' | sed "s/'//g"; }
+
+function repo_lines_in_gemfile () {
+  local gemfile=$1
+  local depth=$2
+
+  local line
+  grep "git: " "$gemfile" | strip | while read line; do
+    name=$(echo $line | gcut --delimiter=' ' --fields=2 | clean)
+    branch=$(echo $line | ggrep --only-matching 'branch: .*' | get_last_field | clean)
+
+    local local_path='' local_branch=''
+    local_path=$(find_local_repo_path "$name")
+
+    if [[ -n $local_path ]]; then
+      local_branch=$(cd "$local_path" && git rev-parse --abbrev-ref HEAD)
+    fi
+
+    if [[ -n "$local_path" ]] && [[ $branch != "$local_branch" ]]; then
+      printer $depth "${RED}$name${NC} ❌  (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+    else
+      printer $depth "$name"
+    fi
+
+    if [[ -n $local_path ]]; then
+      local next_depth=$((depth + 1))
+      repo_lines_in_gemfile "$local_path/Gemfile" $next_depth
+    fi
+
+  done
+}
+
+
+function skip_lines_like() { ggrep --invert-match $@; }
+
+function get_bundle_locals_and_repos() {
+  bundle config | grep 'local\.' --after-context 1 | \
+   sed 's/local\.//' | skip_lines_like '^--' | get_last_field;
+}
+
+function discover_bundle_local_overrides () {
+  BUNDLE_LOCAL_REPOS=()  # global
+  BUNDLE_LOCAL_PATHS=()  # global
+  local repo path
+
+  for line in `get_bundle_locals_and_repos`; do
+    if [[ -z $repo ]]; then
+      repo=$line
+      BUNDLE_LOCAL_REPOS+=($repo)
+    else
+      path=$(echo $line | clean | strip)
+      BUNDLE_LOCAL_PATHS+=($path)
+      repo=''
+    fi
+  done
+  debug "=============================="
+  debug ${BUNDLE_LOCAL_REPOS[*]}
+  debug ${BUNDLE_LOCAL_PATHS[*]}
+  debug "=============================="
+}
+
+# ------------------[ Main ]------------------
+discover_bundle_local_overrides
+
+parse_args $@
+debug "Using Gemfile: $GEMFILE"
+
+parent_repo=$(pwd | sed 's:.*/::g')
+echo $parent_repo
+repo_lines_in_gemfile "$GEMFILE" 1
