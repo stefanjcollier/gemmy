@@ -28,10 +28,6 @@ A_GEMMY_LOCAL="local"
 A_GEMMY_REMOTE="remote"
 
 function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
-function find_action () {
-  local action=$1
-  debug "FIND_ACTION:: $1"
-}
 
 # ========================================================================
 # ==[ Helpers ]===========================================================
@@ -117,6 +113,10 @@ function find_local_repo_path() {
 # ==[ Action ]============================================================
 # ============================ [ Gemmy Check ] ===========================
 # ========================================================================
+function help__gemmy_check () {
+  echo "gemmy check [--gemfile=PATH (default: ./Gemfile)] [--max-depth=INT (default: 5)]"
+}
+
 function parse_gemmy_check_options () {
   local options=$@
   for arg in $options; do
@@ -189,8 +189,12 @@ function action_gemmy_check () {
 
 # ========================================================================
 # ==[ Action ]============================================================
-# ======================= [ Gemmy Local & Remote ] =======================
+# =========================== [ Gemmy Local ] ============================
 # ========================================================================
+function help__gemmy_local () {
+  echo 'gemmy local GEM_NAME [DIR_PATH (default: attempt to find it)]'
+}
+
 function path () { greadlink -f $1; }
 
 # Assume the repo is in the same dir as this one e.g.
@@ -201,7 +205,6 @@ function assume_repo_path () {
   local repo_name=$1
   path "../$repo_name"
 }
-
 
 function action_gemmy_local () {
   local repo_name=$1
@@ -224,9 +227,18 @@ function action_gemmy_local () {
   echo -e "Using ${BLUE}${repo_name}${NC} at: $repo_path"
 }
 
+
+# ========================================================================
+# ==[ Action ]============================================================
+# ========================= [ Gemmy Remote ] =============================
+# ========================================================================
+function help__gemmy_remote () {
+    echo 'gemmy remote GEM_NAME'
+}
+
 function repo_is_used_locally () {
   local repo_name=$1
-  bundle config | ggrep --only-matching "local.$repo_name" --silent  && return $TRUE || return $FALSE
+  bundle config | ggrep --only-matching "local.$repo_name" --silent && return $TRUE || return $FALSE
 }
 
 function action_gemmy_remote () {
@@ -268,6 +280,11 @@ case $action in
     ;;
   $A_GEMMY_REMOTE)
     action_gemmy_remote $other_args
+    ;;
+  help)
+    help__gemmy_check
+    help__gemmy_local
+    help__gemmy_remote
     ;;
   *)
     echo "gemmy: Unrecognised action: $action"

@@ -3,8 +3,8 @@ A tool to control you local bundle config
 
 ## Features
  - Recursively check the Gemfile to see if they are used locally and are on the correct branch
- - (Incoming) Specify a local branch
- - (Incoming) Revert to using the remote code
+ - Specify a local branch
+ - Revert to using the remote code
  - (Incoming) Attempt to change the branches to help
 
 ## Usage
@@ -22,6 +22,7 @@ johnlewis-dressipi
    │   │    ├── rspec-ff_api
    ├── rspec-ff_api
 ```
+
 ### Notation
 #### 👀 Configured correctly
 
