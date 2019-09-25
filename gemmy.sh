@@ -192,7 +192,23 @@ function action_gemmy_check () {
 # ========================================================================
 
 function action_gemmy_local () {
-  echo 'Unsupported'
+  repo_name=$1
+  repo_path=$2
+
+  if [ -z "$repo_name" ]; then
+    echoerr "Specify a gem name"
+    exit 3
+  elif [ -z "$repo_path" ]; then
+    echoerr "Specify where '$repo_name' is "
+    exit 3
+  fi
+
+  if [ -d "$repo_path" ]; then
+    echo "$repo_name does not exist at $repo_path"
+    exit 3
+  fi
+
+  bundle config "local.$repo_name" "$repo_path"
 }
 function action_gemmy_remote () {
   echo 'Unsupported'
