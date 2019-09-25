@@ -17,11 +17,26 @@ johnlewis-dressipi
    │   ├── rspec-ff_api
    ├── fresh_users
    ├── dressipi_health_check
-   ├── dressipi_partner_api
+   ├── dressipi_partner_api 👀
    │   ├── ff_api ❌ (Needs 'master' branch, current: 'rails-5-2-with-formatted-price')
    │   │    ├── rspec-ff_api
    ├── rspec-ff_api
 ```
+### Notation
+#### 👀 Configured correctly
+
+```
+   ├── dressipi_partner_api 👀
+```
+
+We're using `dressipi_parnter_api` locally and is configured fine
+
+#### ❌ Branch mismatch
+```
+   ├── dressipi_partner_api 👀
+   │   ├── ff_api ❌ (Needs 'master' branch, current: 'rails-5-2-with-formatted-price')
+```
+We're using `ff_api` locally and the branch required by `dressipi_partner_api` does not match your local branch
 
 ## Setup
 This requires some GNU commands and then alias the script:
