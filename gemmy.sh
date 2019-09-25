@@ -111,13 +111,13 @@ function repo_lines_in_gemfile () {
     fi
 
     if [[ -n "$local_path" ]]; then
-      if [[ $branch != "$local_branch" ]]; then
-        printer $depth "${RED}$name${NC} ❌  (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
+        printer "$depth" "${RED}$name${NC} ❌  (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
       else
-        printer $depth "${GREEN}$name${NC} 👀"
+        printer "$depth" "${GREEN}$name${NC} 👀"
       fi
     else
-      printer $depth "$name"
+      printer "$depth" "$name"
     fi
 
     if [[ -n $local_path ]]; then
