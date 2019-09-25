@@ -22,9 +22,23 @@ FALSE=1
 GEMFILE=./Gemfile
 MAX_DEPTH=5
 
+A_GEMMY_CHECK="check"
+A_GEMMY_LOCAL="local"
+A_GEMMY_REMOTE="remote"
+ACTION=
+
 function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
 function parse_args () {
-  for arg in $@; do
+  local action=$1
+  if [[ -z $action ]] || [[ $action =~ ^-- ]]; then
+    action=$A_GEMMY_CHECK
+  else
+    shift # remove the first arg as it's not an option
+  fi
+  ACTION=$action
+
+  local options=$@
+  for arg in $options; do
     case $arg in
       --gemfile=*)
         GEMFILE=`get_value`
@@ -35,7 +49,7 @@ function parse_args () {
         ;;
 
       *)
-        echo "Unrecognised argument: $arg"
+        echo "Unrecognised option: $arg"
         exit 2
         ;;
     esac
@@ -141,7 +155,7 @@ function discover_bundle_local_overrides () {
   BUNDLE_LOCAL_PATHS=()  # global
   local repo path
 
-  for line in `get_bundle_locals_and_repos`; do
+  for line in $(get_bundle_locals_and_repos); do
     if [[ -z $repo ]]; then
       repo=$line
       BUNDLE_LOCAL_REPOS+=($repo)
@@ -162,7 +176,21 @@ discover_bundle_local_overrides
 
 parse_args $@
 debug "Using Gemfile: $GEMFILE"
-
 parent_repo=$(pwd | sed 's:.*/::g')
-echo $parent_repo
-repo_lines_in_gemfile "$GEMFILE" 1
+
+case $ACTION in
+  $A_GEMMY_CHECK)
+    echo $parent_repo
+    repo_lines_in_gemfile "$GEMFILE" 1
+    ;;
+  $A_GEMMY_LOCAL)
+    echo 'Unsupported'
+    ;;
+  $A_GEMMY_REMOTE)
+    echo 'Unsupported'
+    ;;
+  *)
+    echo "gemmy: Unrecognised action: $ACTION"
+    exit 1
+    ;;
+esac
