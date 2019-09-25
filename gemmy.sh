@@ -20,22 +20,17 @@ TRUE=0
 FALSE=1
 
 GEMFILE=./Gemfile
-MAX_DEPTH=1
+MAX_DEPTH=5
 
 function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
 function parse_args () {
-  local action=$1
-  if [[ $action =~ ^[a-z] ]]; then
-    shift
-  fi
-
   for arg in $@; do
     case $arg in
       --gemfile=*)
         GEMFILE=`get_value`
         ;;
 
-      --depth=*)
+      --depth=*|--max-depth=*)
         MAX_DEPTH=`get_value`
         ;;
 
@@ -100,6 +95,11 @@ function repo_lines_in_gemfile () {
 
   local line
   grep "git: " "$gemfile" | strip | while read line; do
+    if (( depth > MAX_DEPTH)); then
+      printer "$depth" "${GREY}─ ─ Reached Max Depth ─ ─${NC}"
+      return
+    fi
+
     name=$(echo $line | gcut --delimiter=' ' --fields=2 | clean)
     branch=$(echo $line | ggrep --only-matching 'branch: .*' | get_last_field | clean)
 
