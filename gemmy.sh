@@ -10,9 +10,10 @@
 #     - bash 4
 #     - GNU cut  (alias: gcut)
 #     - GNU grep (alias: ggrep)
+#     - GNU readlink (alias: greadlink)
 #
 # Setup
-#   $ brew install coreutils # gcut
+#   $ brew install coreutils # gcut, greadlink
 #   $ brew install ggrep # ggrep
 #   # then get scripting!
 #
@@ -190,28 +191,58 @@ function action_gemmy_check () {
 # ==[ Action ]============================================================
 # ======================= [ Gemmy Local & Remote ] =======================
 # ========================================================================
+function path () { greadlink -f $1; }
+
+# Assume the repo is in the same dir as this one e.g.
+# /repos
+#   |- current_repo
+#   |- other_repo
+function assume_repo_path () {
+  local repo_name=$1
+  path "../$repo_name"
+}
+
 
 function action_gemmy_local () {
-  repo_name=$1
-  repo_path=$2
+  local repo_name=$1
+  local repo_path=$2
 
   if [ -z "$repo_name" ]; then
-    echoerr "Specify a gem name"
-    exit 3
-  elif [ -z "$repo_path" ]; then
-    echoerr "Specify where '$repo_name' is "
+    errecho "Specify a gem name"
     exit 3
   fi
+  if [ -z "$repo_path" ]; then
+    repo_path=$(assume_repo_path "$repo_name")
+  fi
 
-  if [ -d "$repo_path" ]; then
-    echo "$repo_name does not exist at $repo_path"
+  if [ ! -d "$repo_path" ]; then
+    errecho "$repo_name does not exist at $repo_path"
     exit 3
   fi
 
   bundle config "local.$repo_name" "$repo_path"
+  echo -e "Using ${BLUE}${repo_name}${NC} at: $repo_path"
 }
+
+function repo_is_used_locally () {
+  local repo_name=$1
+  bundle config | ggrep --only-matching "local.$repo_name" --silent  && return $TRUE || return $FALSE
+}
+
 function action_gemmy_remote () {
-  echo 'Unsupported'
+  local repo_name=$1
+  if [ -z "$repo_name" ]; then
+    errecho "Specify a gem name"
+    exit 3
+  fi
+
+  if repo_is_used_locally $repo_name; then
+    bundle config --delete "local.$repo_name"
+    echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
+
+  else
+    errecho "$repo_name is not being used locally"
+  fi
 }
 
 # ========================================================================
