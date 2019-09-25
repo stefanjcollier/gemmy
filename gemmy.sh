@@ -29,10 +29,7 @@ A_GEMMY_REMOTE="remote"
 function get_value() { echo "$arg" | gcut --delimiter='=' --fields=2; }
 function find_action () {
   local action=$1
-  if [[ -z $action ]] || [[ $action =~ ^-- ]]; then
-    echo $A_GEMMY_CHECK
-  fi
-  echo $action
+  debug "FIND_ACTION:: $1"
 }
 
 # ========================================================================
@@ -119,7 +116,7 @@ function find_local_repo_path() {
 # ==[ Action ]============================================================
 # ============================ [ Gemmy Check ] ===========================
 # ========================================================================
-function parse_gemmy_check_args () {
+function parse_gemmy_check_options () {
   local options=$@
   for arg in $options; do
     case $arg in
@@ -182,8 +179,9 @@ function repo_lines_in_gemfile () {
 }
 
 function action_gemmy_check () {
+  local options=$@
   discover_bundle_local_overrides
-  parse_gemmy_check_args $@
+  parse_gemmy_check_options $options
   echo "$PARENT_NAME"
   repo_lines_in_gemfile "$GEMFILE" 1
 }
@@ -205,19 +203,24 @@ function action_gemmy_remote () {
 # ========================================================================
 PARENT_NAME=$(pwd | sed 's:.*/::g')
 
-action=$(find_action $1)
-shift
+action=$1
+if [[ -z $action ]] || [[ $action =~ ^-- ]]; then
+  action="$A_GEMMY_CHECK"
+else
+  shift
+fi
 other_args=$@
+debug "Action:: '$action' Options:: '$@' "
 
 case $action in
   $A_GEMMY_CHECK)
     action_gemmy_check $other_args
     ;;
   $A_GEMMY_LOCAL)
-    action_gemmy_local
+    action_gemmy_local $other_args
     ;;
   $A_GEMMY_REMOTE)
-    action_gemmy_remote
+    action_gemmy_remote $other_args
     ;;
   *)
     echo "gemmy: Unrecognised action: $action"
