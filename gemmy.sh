@@ -176,11 +176,11 @@ discover_bundle_local_overrides
 
 parse_args $@
 debug "Using Gemfile: $GEMFILE"
-parent_repo=$(pwd | sed 's:.*/::g')
+PARENT_NAME=$(pwd | sed 's:.*/::g')
 
 case $ACTION in
   $A_GEMMY_CHECK)
-    echo $parent_repo
+    echo "$PARENT_NAME"
     repo_lines_in_gemfile "$GEMFILE" 1
     ;;
   $A_GEMMY_LOCAL)
