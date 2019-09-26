@@ -42,7 +42,7 @@ CYAN='\033[0;36m'
 GREY='\033[0;37m'
 NC='\033[0m'
 function errecho() { echo -e "⚠️  ${RED}gemmy: $@${NC}" >&2; }
-function debug() { if [[ -n $DEBUG ]] ; then echo -e "ℹ️  ${BLUE}$@${NC}" >&2 ; fi; }
+function debug() { [[ -n $DEBUG ]] && echo -e "ℹ️  ${BLUE}$@${NC}" >&2; }
 function lstrip() { sed 's/^[ ][ ]*//'; }
 function rstrip() { sed 's/[ ][ ]*$//'; }
 function strip() { lstrip | rstrip; }
@@ -88,10 +88,10 @@ function discover_bundle_local_overrides () {
       repo=''
     fi
   done
-  debug "=============================="
-  debug ${BUNDLE_LOCAL_REPOS[*]}
-  debug ${BUNDLE_LOCAL_PATHS[*]}
-  debug "=============================="
+  debug "===[ Local Bundle Override]==========================="
+  debug "Repo Names:: ${BUNDLE_LOCAL_REPOS[*]}"
+  debug "Repo Paths:: ${BUNDLE_LOCAL_PATHS[*]}"
+  debug "======================================================="
 }
 
 function find_local_repo_path() {
@@ -145,14 +145,14 @@ function get_repo_version() {
   local repo_name=$1
   local repo_path=$2
 
-  version_file="${repo_path}/lib/${repo_name}/version.rb"
-  if [ -f "$version_file" ]; then
+  # First try a version.rb file
+  for version_file in $(find "${repo_path}" -name version.rb); do
     version=$(cat "$version_file" | extract_semversion)
     if [[ -n "$version" ]]; then
       echo "$version"
       return
     fi
-  fi
+  done
 
   # Fallback to gemspec file
   gemspec_file="${repo_path}/${repo_name}.gemspec"
@@ -208,11 +208,17 @@ function repo_lines_in_gemfile () {
 
     if [[ -n "$local_path" ]]; then
       version=$(get_repo_version "$name" "$local_path")
-      get_version_spec "$line"
-      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
-        printer "$depth" "${RED}$name${NC} (v$version) ❌ (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+      if [[ -n $version ]]; then
+        version_string=" (v$version)"
+        get_version_spec "$line"
       else
-        printer "$depth" "${GREEN}$name${NC} (v$version) 👀"
+        [[ -n $DEBUG ]] && errecho "Cannot find version for $name"
+      fi
+
+      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
+        printer "$depth" "${RED}$name${NC}$version_string ❌ (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+      else
+        printer "$depth" "${GREEN}$name${NC}$version_string 👀"
       fi
 
       debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
