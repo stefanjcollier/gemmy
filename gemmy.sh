@@ -137,15 +137,29 @@ function parse_gemmy_check_options () {
   done
 }
 
+
 VER_OPERATOR_REGEX='^[=<>~][=<>~]?$'
 SEMVER_REGEX='([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?'
+function extract_semversion() { ggrep --only-matching --perl-regexp "$SEMVER_REGEX"; }
 function get_repo_version() {
   local repo_name=$1
   local repo_path=$2
+
   version_file="${repo_path}/lib/${repo_name}/version.rb"
   if [ -f "$version_file" ]; then
-    cat "$version_file" | grep --only-matching --perl-regexp "$SEMVER_REGEX"
+    version=$(cat "$version_file" | extract_semversion)
+    if [[ -n "$version" ]]; then
+      echo "$version"
+      return
+    fi
   fi
+
+  # Fallback to gemspec file
+  gemspec_file="${repo_path}/${repo_name}.gemspec"
+  if [ ! -f "$gemspec_file" ]; then
+    gemspec_file="${repo_path}/${repo_name//-/_}.gemspec"
+  fi
+  cat "$gemspec_file" | ggrep -P "\.version.*=.*$SEMVER_REGEX" | extract_semversion
 }
 
 function get_version_spec() {
@@ -167,14 +181,16 @@ function get_version_spec() {
 
 function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
 function clean(){ sed 's/[:",]//g' | sed "s/'//g"; }
-function clean_gemfile_lines() { sed 's/:branch =>/branch:/'|  sed 's/:git =>/git:/' | strip;  }
+function clean_gemfile_lines() {
+  sed 's/:branch =>/branch:/' "$1" |  sed 's/:git =>/git:/' | strip;
+}
 
 function repo_lines_in_gemfile () {
   local gemfile=$1
   local depth=$2
 
   local line
-  grep "git: " "$gemfile" | clean_gemfile_lines | while read line; do
+  clean_gemfile_lines "$gemfile" | grep "git:" | while read line; do
     if (( depth > MAX_DEPTH)); then
       printer "$depth" "${GREY}─ ─ Reached Max Depth ─ ─${NC}"
       return
@@ -191,13 +207,14 @@ function repo_lines_in_gemfile () {
     fi
 
     if [[ -n "$local_path" ]]; then
-      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
-        printer "$depth" "${RED}$name${NC} ❌  (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
-      else
-        printer "$depth" "${GREEN}$name${NC} 👀"
-      fi
-      version=$(get_repo_version "$repo_name" "$repo_path")
+      version=$(get_repo_version "$name" "$local_path")
       get_version_spec "$line"
+      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
+        printer "$depth" "${RED}$name${NC} (v$version) ❌ (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+      else
+        printer "$depth" "${GREEN}$name${NC} (v$version) 👀"
+      fi
+
       debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
     else
       printer "$depth" "$name"
