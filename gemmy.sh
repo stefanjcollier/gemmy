@@ -143,44 +143,45 @@ function get_repo_version() {
   local repo_name=$1
   local repo_path=$2
   version_file="${repo_path}/lib/${repo_name}/version.rb"
-  if [ -f $version_file ]; tshen
-    cat $version_file | grep --only-matching --perl-regexp "$SEMVER_REGEX"
+  if [ -f "$version_file" ]; then
+    cat "$version_file" | grep --only-matching --perl-regexp "$SEMVER_REGEX"
   fi
 }
 
-function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
-function clean(){ sed 's/[:",]//g' | sed "s/'//g"; }
-
 function get_version_spec() {
   local line=$@
-  local version_specs=()
-  line=$(echo $line | sed "s/'//g")
   local version_controller=
+  VERSION_SPECS=()
+
+  line=$(echo $line | sed "s/'//g")
   for part in ${line//,/ }; do
     if [[ $part =~ $VER_OPERATOR_REGEX ]]; then
       version_controller=$part
 
     elif [[ $part =~ $SEMVER_REGEX ]]; then
-      version_specs+=("${version_controller}${part}")
+      VERSION_SPECS+=("${version_controller}${part}")
       version_controller=
     fi
-    echo $version_specs
   done
 }
+
+function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
+function clean(){ sed 's/[:",]//g' | sed "s/'//g"; }
+function clean_gemfile_lines() { sed 's/:branch =>/branch:/'|  sed 's/:git =>/git:/' | strip;  }
 
 function repo_lines_in_gemfile () {
   local gemfile=$1
   local depth=$2
 
   local line
-  grep "git: " "$gemfile" | strip | while read line; do
+  grep "git: " "$gemfile" | clean_gemfile_lines | while read line; do
     if (( depth > MAX_DEPTH)); then
       printer "$depth" "${GREY}─ ─ Reached Max Depth ─ ─${NC}"
       return
     fi
 
     name=$(echo $line | gcut --delimiter=' ' --fields=2 | clean)
-    branch=$(echo $line | ggrep --only-matching 'branch: .*' | get_last_field | clean)
+    branch=$(echo $line | ggrep --only-matching 'branch:.*' | get_last_field | clean)
 
     local local_path='' local_branch=''
     local_path=$(find_local_repo_path "$name")
@@ -195,6 +196,9 @@ function repo_lines_in_gemfile () {
       else
         printer "$depth" "${GREEN}$name${NC} 👀"
       fi
+      version=$(get_repo_version "$repo_name" "$repo_path")
+      get_version_spec "$line"
+      debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
     else
       printer "$depth" "$name"
     fi
