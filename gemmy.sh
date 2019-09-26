@@ -114,7 +114,7 @@ function find_local_repo_path() {
 # ============================ [ Gemmy Check ] ===========================
 # ========================================================================
 function help__gemmy_check () {
-  echo "gemmy check [--gemfile=PATH (default: ./Gemfile)] [--max-depth=INT (default: 5)]"
+  echo "gemmy check [--gemfile=<path> (default: ./Gemfile)] [--max-depth=<int> (default: 5)]"
 }
 
 function parse_gemmy_check_options () {
@@ -255,7 +255,7 @@ function action_gemmy_check () {
 # =========================== [ Gemmy Local ] ============================
 # ========================================================================
 function help__gemmy_local () {
-  echo 'gemmy local GEM_NAME [DIR_PATH (default: attempt to find it)]'
+  echo 'gemmy local <gem_name> [<path> (default: attempt to find it)]'
 }
 
 function path () { greadlink -f $1; }
@@ -296,7 +296,7 @@ function action_gemmy_local () {
 # ========================= [ Gemmy Remote ] =============================
 # ========================================================================
 function help__gemmy_remote () {
-    echo 'gemmy remote GEM_NAME'
+    echo 'gemmy remote <gem_name>...'
 }
 
 function repo_is_used_locally () {
@@ -305,19 +305,21 @@ function repo_is_used_locally () {
 }
 
 function action_gemmy_remote () {
-  local repo_name=$1
-  if [ -z "$repo_name" ]; then
-    errecho "Specify a gem name"
-    exit 3
-  fi
+  local repo_names=$@
+  for repo_name in $repo_names; do
+    if [ -z "$repo_name" ]; then
+      errecho "Specify a gem name"
+      exit 3
+    fi
 
-  if repo_is_used_locally $repo_name; then
-    bundle config --delete "local.$repo_name"
-    echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
+    if repo_is_used_locally $repo_name; then
+      bundle config --delete "local.$repo_name"
+      echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
 
-  else
-    errecho "$repo_name is not being used locally"
-  fi
+    else
+      errecho "$repo_name is not being used locally"
+    fi
+  done
 }
 
 # ========================================================================
