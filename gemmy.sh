@@ -137,8 +137,36 @@ function parse_gemmy_check_options () {
   done
 }
 
+VER_OPERATOR_REGEX='^[=<>~][=<>~]?$'
+SEMVER_REGEX='([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?'
+function get_repo_version() {
+  local repo_name=$1
+  local repo_path=$2
+  version_file="${repo_path}/lib/${repo_name}/version.rb"
+  if [ -f $version_file ]; tshen
+    cat $version_file | grep --only-matching --perl-regexp "$SEMVER_REGEX"
+  fi
+}
+
 function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
 function clean(){ sed 's/[:",]//g' | sed "s/'//g"; }
+
+function get_version_spec() {
+  local line=$@
+  local version_specs=()
+  line=$(echo $line | sed "s/'//g")
+  local version_controller=
+  for part in ${line//,/ }; do
+    if [[ $part =~ $VER_OPERATOR_REGEX ]]; then
+      version_controller=$part
+
+    elif [[ $part =~ $SEMVER_REGEX ]]; then
+      version_specs+=("${version_controller}${part}")
+      version_controller=
+    fi
+    echo $version_specs
+  done
+}
 
 function repo_lines_in_gemfile () {
   local gemfile=$1
