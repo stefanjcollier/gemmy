@@ -139,8 +139,11 @@ function parse_gemmy_check_options () {
 
 
 VER_OPERATOR_REGEX='^[=<>~][=<>~]?$'
-SEMVER_REGEX='([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?'
+# Note: SEMVER_REGEX requires is in perl syntax NOT BASH SYNTAX
+# It is also not the official one, it allows for incomplete semver e.g. 8.0 instead 8.0.0
+SEMVER_REGEX='([0-9]+)(\.([0-9]+)(\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?)?)?'
 function extract_semversion() { ggrep --only-matching --perl-regexp "$SEMVER_REGEX"; }
+function is_semversion() { ggrep --only-matching --perl-regexp "^$SEMVER_REGEX$" --silent; }
 function get_repo_version() {
   local repo_name=$1
   local repo_path=$2
@@ -166,17 +169,23 @@ function get_version_spec() {
   local line=$@
   local version_controller=
   VERSION_SPECS=()
-
+  debug "=======[ get_version_spec ]================================="
   line=$(echo $line | sed "s/'//g")
   for part in ${line//,/ }; do
     if [[ $part =~ $VER_OPERATOR_REGEX ]]; then
       version_controller=$part
+      debug "Operator: '$part'  "
 
-    elif [[ $part =~ $SEMVER_REGEX ]]; then
+    elif echo "$part" | is_semversion; then
       VERSION_SPECS+=("${version_controller}${part}")
       version_controller=
+      debug "Version:  '$part'  "
+
+    else
+      debug "❌        '$part'  "
     fi
   done
+  debug "==============================================================="
 }
 
 function get_last_field() { rev | gcut --delimiter=' ' --fields=1 | rev; }
@@ -220,7 +229,6 @@ function repo_lines_in_gemfile () {
       else
         printer "$depth" "${GREEN}$name${NC}$version_string 👀"
       fi
-
       debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
     else
       printer "$depth" "$name"
