@@ -149,7 +149,7 @@ function get_repo_version() {
   local repo_path=$2
 
   # First try a version.rb file
-  for version_file in $(find "${repo_path}" -name version.rb); do
+  find "${repo_path}" -name version.rb | while read -r version_file; do
     version=$(cat "$version_file" | extract_semversion)
     if [[ -n "$version" ]]; then
       echo "$version"
@@ -194,12 +194,40 @@ function clean_gemfile_lines() {
   sed 's/:branch =>/branch:/' "$1" |  sed 's/:git =>/git:/' | strip;
 }
 
+function print_check_result() {
+  local depth=$1
+  local name=$2
+  local branch=$3
+  local local_branch=$4
+  local local_path=$5
+
+  if [[ -n "$local_path" ]]; then
+    version=$(get_repo_version "$name" "$local_path")
+    if [[ -n $version ]]; then
+      version_string=" (v$version)"
+      get_version_spec "$line"
+    else
+      [[ -n $DEBUG ]] && errecho "Cannot find version for $name"
+    fi
+
+    if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
+      printer "$depth" "${RED}$name${NC}$version_string ❌ (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
+    else
+      printer "$depth" "${GREEN}$name${NC}$version_string 👀"
+    fi
+    debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
+  else
+    printer "$depth" "$name"
+  fi
+
+}
+
 function repo_lines_in_gemfile () {
   local gemfile=$1
   local depth=$2
 
   local line
-  clean_gemfile_lines "$gemfile" | grep "git:" | while read line; do
+  clean_gemfile_lines "$gemfile" | grep "git:" | while read -r line; do
     if (( depth > MAX_DEPTH)); then
       printer "$depth" "${GREY}─ ─ Reached Max Depth ─ ─${NC}"
       return
@@ -210,29 +238,11 @@ function repo_lines_in_gemfile () {
 
     local local_path='' local_branch=''
     local_path=$(find_local_repo_path "$name")
-
     if [[ -n $local_path ]]; then
       local_branch=$(cd "$local_path" && git rev-parse --abbrev-ref HEAD)
     fi
 
-    if [[ -n "$local_path" ]]; then
-      version=$(get_repo_version "$name" "$local_path")
-      if [[ -n $version ]]; then
-        version_string=" (v$version)"
-        get_version_spec "$line"
-      else
-        [[ -n $DEBUG ]] && errecho "Cannot find version for $name"
-      fi
-
-      if [[ -n "$branch" ]] && [[ $branch != "$local_branch" ]]; then
-        printer "$depth" "${RED}$name${NC}$version_string ❌ (Needs '${BLUE}$branch${NC}' branch, current: '${YELLOW}$local_branch${NC}')"
-      else
-        printer "$depth" "${GREEN}$name${NC}$version_string 👀"
-      fi
-      debug "   ^ Version:: $version    Version Specs:: ${VERSION_SPECS[@]}"
-    else
-      printer "$depth" "$name"
-    fi
+    print_check_result "$depth" "$name" "$branch" "$local_branch" "$local_path"
 
     if [[ -n $local_path ]]; then
       local next_depth=$((depth + 1))
