@@ -306,13 +306,12 @@ function repo_is_used_locally () {
 
 function action_gemmy_remote () {
   local repo_names=$@
+  if [ -z "$repo_names" ]; then
+    errecho "Specify at least one gem name"
+    exit 3
+  fi
   for repo_name in $repo_names; do
-    if [ -z "$repo_name" ]; then
-      errecho "Specify a gem name"
-      exit 3
-    fi
-
-    if repo_is_used_locally $repo_name; then
+    if repo_is_used_locally "$repo_name"; then
       bundle config --delete "local.$repo_name"
       echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
 
