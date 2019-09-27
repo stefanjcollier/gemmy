@@ -363,6 +363,7 @@ case $action in
     ;;
   *)
     echo "gemmy: Unrecognised action: $action"
+    echo '   Run `gemmy help` for a list of actions'
     exit 1
     ;;
 esac
