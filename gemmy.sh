@@ -69,7 +69,7 @@ function printer() {
 function skip_lines_like() { ggrep --invert-match $@; }
 
 function get_bundle_locals_and_repos() {
-  bundle config | grep 'local\.' --after-context 1 | \
+  bundle config | ggrep 'local\.' --after-context 1 | \
    sed 's/local\.//' | skip_lines_like '^--' | get_last_field;
 }
 
@@ -228,7 +228,7 @@ function repo_lines_in_gemfile () {
   local depth=$2
 
   local line
-  clean_gemfile_lines "$gemfile" | grep "git:" | while read -r line; do
+  clean_gemfile_lines "$gemfile" | ggrep "git:" | while read -r line; do
     if (( depth > MAX_DEPTH)); then
       printer "$depth" "${GREY}─ ─ Reached Max Depth ─ ─${NC}"
       return
