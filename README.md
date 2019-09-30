@@ -40,16 +40,17 @@ We're using `dressipi_parnter_api` locally and is configured fine
 We're using `ff_api` locally and the branch required by `dressipi_partner_api` does not match your local branch
 
 ## Setup
-This requires some GNU commands and then alias the script:
+### Prerequisites
+The installer script requires `brew`
 
-1. Install GNU versions of commands, they'll be accessible via g\<command\> e.g. ggrep and gcut 
+### Install!
+Run the following command
 ```
-brew install grep
-brew install coreutils
-```
-
-2. Add the alias to your `.bashrc` or `.bash_profile`
-```
-alias gemmy='sh /path/to/gemmy/gemmy.sh'
+mkdir -p ~/scripts
+cd ~/scripts
+git clone git@github.com:stefanjohncollier/gemmy.git
+cd gemmy
+./install
+source .bash_profile
 ```
 
