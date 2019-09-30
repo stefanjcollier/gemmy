@@ -271,13 +271,27 @@ function help__gemmy_local () {
 
 function path () { greadlink -f $1; }
 
+function return_if_dir () {
+  local rel_path=$1
+  local abs_path=$(path "$rel_path")
+  debug "return_if_dir($1):: $abs_path"
+  if [[ -n $abs_path ]] && [[ -d $abs_path ]]; then
+    debug "... Yes!"
+    echo "$abs_path"
+    return $TRUE
+  else
+    debug "... No!"
+    return $FALSE
+  fi
+}
+
 # Assume the repo is in the same dir as this one e.g.
 # /repos
 #   |- current_repo
 #   |- other_repo
 function assume_repo_path () {
   local repo_name=$1
-  path "../$repo_name"
+  return_if_dir "../$repo_name" || return_if_dir "./$repo_name"
 }
 
 function action_gemmy_local () {
@@ -290,9 +304,12 @@ function action_gemmy_local () {
   fi
   if [ -z "$repo_path" ]; then
     repo_path=$(assume_repo_path "$repo_name")
-  fi
+    if [ -z "$repo_path" ]; then
+      errecho "Couldn't find $repo_name, maybe try giving a path like so:"
+      errecho "    $ gemmy local $repo_name /path/to/$repo_name"
+    fi
 
-  if [ ! -d "$repo_path" ]; then
+  elif [ ! -d "$repo_path" ]; then
     errecho "$repo_name does not exist at $repo_path"
     exit 3
   fi
