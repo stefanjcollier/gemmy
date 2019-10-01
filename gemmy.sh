@@ -161,9 +161,11 @@ function get_repo_version() {
   # Fallback to gemspec file
   gemspec_file="${repo_path}/${repo_name}.gemspec"
   if [ ! -f "$gemspec_file" ]; then
-    gemspec_file="${repo_path}/${repo_name//-/_}.gemspec"
+    gemspec_file="${repo_path}/${repo_name//-/_}.gemspec"  # replace - with _
   fi
-  cat "$gemspec_file" | ggrep -P "\.version.*=.*$SEMVER_REGEX" | extract_semversion
+  if [ -f "$gemspec_file" ]; then
+    cat "$gemspec_file" | ggrep -P "\.version.*=.*$SEMVER_REGEX" | extract_semversion
+  fi
 }
 
 function get_version_spec() {
