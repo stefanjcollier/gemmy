@@ -309,6 +309,7 @@ function action_gemmy_local () {
     if [ -z "$repo_path" ]; then
       errecho "Couldn't find $repo_name, maybe try giving a path like so:"
       errecho "    $ gemmy local $repo_name /path/to/$repo_name"
+      exit 3
     fi
 
   elif [ ! -d "$repo_path" ]; then
