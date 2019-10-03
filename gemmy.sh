@@ -20,7 +20,8 @@
 TRUE=0
 FALSE=1
 
-GEMFILE=./Gemfile
+CURRENT_REPO_ROOT=$(git rev-parse --show-toplevel)
+GEMFILE="${CURRENT_REPO_ROOT}/Gemfile"
 MAX_DEPTH=5
 
 A_GEMMY_CHECK="check"
@@ -257,6 +258,10 @@ function repo_lines_in_gemfile () {
 
 function action_gemmy_check () {
   local options=$@
+  debug "===[ Gemfile ]==========================="
+  debug "Path: $GEMFILE"
+  debug "========================================="
+
   discover_bundle_local_overrides
   parse_gemmy_check_options $options
   echo "$PARENT_NAME"
