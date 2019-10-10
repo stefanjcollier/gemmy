@@ -110,6 +110,12 @@ function find_local_repo_path() {
   echo ''
 }
 
+
+function repo_is_used_locally () {
+  local repo_name=$1
+  bundle config | ggrep --only-matching "local.$repo_name" --silent && return $TRUE || return $FALSE
+}
+
 # ========================================================================
 # ==[ Action ]============================================================
 # ============================ [ Gemmy Check ] ===========================
@@ -252,8 +258,8 @@ function repo_lines_in_gemfile () {
       local next_depth=$((depth + 1))
       repo_lines_in_gemfile "$local_path/Gemfile" $next_depth
     fi
-
   done
+  # TODO handle no local possibilities
 }
 
 function action_gemmy_check () {
@@ -304,11 +310,21 @@ function assume_repo_path () {
 function action_gemmy_local () {
   local repo_name=$1
   local repo_path=$2
-
+  
+  # Ensure gem name
   if [ -z "$repo_name" ]; then
     errecho "Specify a gem name"
     exit 3
   fi
+  
+  # Ensure not already used
+  discover_bundle_local_overrides
+  if repo_is_used_locally $repo_name; then
+    errecho "You are already using $repo_name locally"
+    exit 3
+  fi
+  
+  # Try find a directory for the 
   if [ -z "$repo_path" ]; then
     repo_path=$(assume_repo_path "$repo_name")
     if [ -z "$repo_path" ]; then
@@ -316,12 +332,15 @@ function action_gemmy_local () {
       errecho "    $ gemmy local $repo_name /path/to/$repo_name"
       exit 3
     fi
+  fi
 
-  elif [ ! -d "$repo_path" ]; then
+  # Ensrue it's an actual directory
+  if [ ! -d "$repo_path" ]; then
     errecho "$repo_name does not exist at $repo_path"
     exit 3
   fi
 
+  # Actually set the config
   bundle config "local.$repo_name" "$repo_path"
   echo -e "Using ${BLUE}${repo_name}${NC} at: $repo_path"
 }
@@ -335,10 +354,6 @@ function help__gemmy_remote () {
     echo 'gemmy remote <gem_name>...'
 }
 
-function repo_is_used_locally () {
-  local repo_name=$1
-  bundle config | ggrep --only-matching "local.$repo_name" --silent && return $TRUE || return $FALSE
-}
 
 function action_gemmy_remote () {
   local repo_names=$@
