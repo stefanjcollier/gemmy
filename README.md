@@ -22,6 +22,18 @@ johnlewis-dressipi
    │   │    ├── rspec-ff_api
    ├── rspec-ff_api
 ```
+Specify a gem to use locally
+```
+$ gemmy local ff_api
+Using ff_api at: /Users/stefancollier/Source/ff_api
+```
+
+Stop using a local gem
+```
+$ gemmy remote ff_api
+No longer using ff_api locally
+```
+
 
 ### Notation
 #### 👀 Configured correctly
