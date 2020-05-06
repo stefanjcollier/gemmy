@@ -354,6 +354,14 @@ function help__gemmy_remote () {
     echo 'gemmy remote <gem_name>...'
 }
 
+function repo_doesnt_exist () {
+  repo_path=$(assume_repo_path "$repo_name")
+  if [ -z $repo_path ]; then
+    return $TRUE
+  else
+    return $FALSE
+  fi
+}
 
 function action_gemmy_remote () {
   local repo_names=$@
@@ -361,7 +369,14 @@ function action_gemmy_remote () {
     errecho "Specify at least one gem name"
     exit 3
   fi
+  
   for repo_name in $repo_names; do
+    if repo_doesnt_exist $repo_name; then
+      errecho "$repo_name doesn't exist, did you misspell one of the following?"
+      action_gemmy_check 
+      exit 3
+    fi
+
     if repo_is_used_locally "$repo_name"; then
       bundle config --delete "local.$repo_name"
       echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
