@@ -62,7 +62,7 @@ mkdir -p ~/scripts
 cd ~/scripts
 git clone git@github.com:stefanjohncollier/gemmy.git
 cd gemmy
-./install
+./install.sh
 source .bash_profile
 ```
 
