@@ -67,7 +67,7 @@ function raise_if_not_in_ruby_project () {
   if [ ! -f ./Gemfile ]; then
     errecho 'Not in bundle supported ruby project'
     exit 4
-  elif [ ! -f ./.git ]; then
+  elif [ ! -e ./.git ]; then
     errecho 'Current directory must be a git repo'
     exit 4
   fi
