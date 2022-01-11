@@ -63,6 +63,6 @@ cd ~/scripts
 git clone git@github.com:stefanjohncollier/gemmy.git
 cd gemmy
 ./install.sh
-source .bash_profile
+source ~/.bash_profile
 ```
 
