@@ -20,10 +20,6 @@
 TRUE=0
 FALSE=1
 
-CURRENT_REPO_ROOT=$(git rev-parse --show-toplevel)
-GEMFILE="${CURRENT_REPO_ROOT}/Gemfile"
-MAX_DEPTH=5
-
 A_GEMMY_CHECK="check"
 A_GEMMY_LOCAL="local"
 A_GEMMY_REMOTE="remote"
@@ -42,7 +38,7 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 GREY='\033[0;37m'
 NC='\033[0m'
-function errecho() { echo -e "⚠️  ${RED}gemmy: $@${NC}" >&2; }
+function errecho() { echo "⚠️  ${RED}gemmy: $@${NC}" >&2; }
 function debug() { [[ -n $DEBUG ]] && echo -e "ℹ️  ${BLUE}$@${NC}" >&2; }
 function lstrip() { sed 's/^[ ][ ]*//'; }
 function rstrip() { sed 's/[ ][ ]*$//'; }
@@ -60,6 +56,21 @@ function printer() {
     2) pprint_branch $@;;
     *) ppprint_branch $@;;
   esac
+}
+
+# ========================================================================
+# ==[ Helpers ]===========================================================
+# =========================== [ Setup ] ==================================
+# ========================================================================
+
+function raise_if_not_in_ruby_project () {
+  if [ ! -f ./Gemfile ]; then
+    errecho 'Not in bundle supported ruby project'
+    exit 4
+  elif [ ! -f ./.git ]; then
+    errecho 'Current directory must be a git repo'
+    exit 4
+  fi
 }
 
 
@@ -390,6 +401,11 @@ function action_gemmy_remote () {
 # ========================================================================
 # =============================== [ Main ] ===============================
 # ========================================================================
+raise_if_not_in_ruby_project
+CURRENT_REPO_ROOT=$(git rev-parse --show-toplevel)
+GEMFILE="${CURRENT_REPO_ROOT}/Gemfile"
+MAX_DEPTH=5
+
 PARENT_NAME=$(pwd | sed 's:.*/::g')
 
 action=$1
