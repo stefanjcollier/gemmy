@@ -42,7 +42,7 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 GREY='\033[0;37m'
 NC='\033[0m'
-function errecho() { echo -e "⚠️  ${RED}gemmy: $@${NC}" >&2; }
+function errecho() { echo "⚠️  ${RED}gemmy: $@${NC}" >&2; }
 function debug() { [[ -n $DEBUG ]] && echo -e "ℹ️  ${BLUE}$@${NC}" >&2; }
 function lstrip() { sed 's/^[ ][ ]*//'; }
 function rstrip() { sed 's/[ ][ ]*$//'; }
