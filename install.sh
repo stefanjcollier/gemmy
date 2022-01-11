@@ -5,29 +5,30 @@
 #   ./install.sh
 #
 
-echo '=[⚙️]=================[ Installing Requirements ]==================='
+echo '=[⚙ ️]=================[ Installing Requirements ]==================='
 function install() {
   local command=$1
   local install_method=$2
 
   echo "🤔 Checking for: ${command}"
-  if $command --version | head -n1  2> /dev/null; then
+  if $command --version 2> /dev/null; then
     echo "✅ ${command} already is installed"
     echo
   else
-    echo "⚙️ installing ${command}"
+    echo "⚙️  installing ${command}"
     $install_method || exit 1
+    echo
   fi
 }
 
 echo 'Installing requirements for gemmy ⚙️'
-install 'brew' "head to https://brew.sh/ for install instructions; exit 1"
-install 'ggrep'     "brew install ggrep"
+install 'brew'      "echo 'head to https://brew.sh/ for install instructions'; exit 1"
+install 'ggrep'     "brew install grep"
 install 'greadlink' "brew install coreutils"
 install 'gcut'      "brew install coreutils"
 
 echo
-echo '=[📝]======================[ Adding Alias ]=========================='
+echo '=[📝 ]======================[ Adding Alias ]=========================='
 function check_profile_works() {
   {
     source ~/.bash_profile && echo "✅ ~/.bash_profile is stable"
