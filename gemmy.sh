@@ -39,14 +39,14 @@ CYAN='\033[0;36m'
 GREY='\033[0;37m'
 NC='\033[0m'
 function errecho() { echo "⚠️  ${RED}gemmy: $@${NC}" >&2; }
-function debug() { [[ -n $DEBUG ]] && echo -e "ℹ️  ${BLUE}$@${NC}" >&2; }
+function debug() { [[ -n $DEBUG ]] && echo "ℹ️  ${BLUE}$@${NC}" >&2; }
 function lstrip() { sed 's/^[ ][ ]*//'; }
 function rstrip() { sed 's/[ ][ ]*$//'; }
 function strip() { lstrip | rstrip; }
 
-function print_branch()   { echo -e "   ├── $@"; }
-function pprint_branch()  { echo -e "   │   ├── $@"; }
-function ppprint_branch() { echo -e "   │   │    ├── $@"; }
+function print_branch()   { echo "   ├── $@"; }
+function pprint_branch()  { echo "   │   ├── $@"; }
+function ppprint_branch() { echo "   │   │    ├── $@"; }
 function printer() {
   local depth=$1
   shift
@@ -353,7 +353,7 @@ function action_gemmy_local () {
 
   # Actually set the config
   bundle config "local.$repo_name" "$repo_path"
-  echo -e "Using ${BLUE}${repo_name}${NC} at: $repo_path"
+  echo "Using ${BLUE}${repo_name}${NC} at: $repo_path"
 }
 
 
@@ -390,7 +390,7 @@ function action_gemmy_remote () {
 
     if repo_is_used_locally "$repo_name"; then
       bundle config --delete "local.$repo_name"
-      echo -e "No longer using ${BLUE}${repo_name}${NC} locally"
+      echo "No longer using ${BLUE}${repo_name}${NC} locally"
 
     else
       errecho "$repo_name is not being used locally"
