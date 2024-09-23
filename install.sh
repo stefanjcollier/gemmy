@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 # Description
 #   Install the requirements for gemmy.sh
 # Usage
@@ -31,9 +31,9 @@ echo
 echo '=[📝 ]======================[ Adding Alias ]=========================='
 function check_profile_works() {
   {
-    source ~/.bash_profile && echo "✅ ~/.bash_profile is stable"
+    source ~/.zshrc && echo "✅ ~/.zshrc is stable"
   } || {
-    echo '👹 Something went wrong sourcing ~/.bash_profile, please fix your bash_profile';
+    echo '👹 Something went wrong sourcing ~/.zshrc, please fix your zshrc';
     exit 2
   }
 }
@@ -41,14 +41,13 @@ function check_profile_works() {
 #echo '🤔 Checking for gemmy alias'
 # TODO
 
-echo "🧪 Check ~/.bash_profile is stable before adding alias"
+echo "🧪 Check ~/.zshrc is stable before adding alias"
 check_profile_works
 
-current_script_path=$(greadlink -f "${BASH_SOURCE[0]}")
-gemmy_dir=$(dirname "$current_script_path")
-echo "Adding alias to ~/.bash_profile"
-echo "alias gemmy='sh ${gemmy_dir}/gemmy.sh'" >> ~/.bash_profile
-echo "🧪  Check ~/.bash_profile is stable after adding alias"
+gemmy_dir=$PWD
+echo "Adding alias to ~/.zshrc"
+echo "alias gemmy='sh ${gemmy_dir}/gemmy.sh'" >> ~/.zshrc
+echo "🧪  Check ~/.zshrc is stable after adding alias"
 check_profile_works
 
 echo
